@@ -1,0 +1,13 @@
+/data/*
+!/data/notes.txt
+/lec
+
+renv
+.RData
+.Rproj.user
+.Rhistory
+*.rds
+*.nb.html
+
+__pycache__
+.ipynb_checkpoints
