@@ -4,12 +4,12 @@ output: html_notebook
 ---
 
 ```{r}
-install.packages('renv')
-renv::init()
+# install.packages('renv')
+# renv::init()
 # install.packages('Seurat')
 ```
 ```{r}
-install.packages('Seurat')
+# install.packages('Seurat')
 ```
 ```{r}
 # remove.packages("vctrs")
@@ -35,18 +35,20 @@ pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
 
 ```{r}
 # Visualize QC metrics as a violin plot
-VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+# VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
 ```
 ```{r}
 # FeatureScatter is typically used to visualize feature-feature relationships, but can be used
 # for anything calculated by the object, i.e. columns in object metadata, PC scores etc.
 
-plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt")
-plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
-plot1 + plot2
+# plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt")
+# plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+# plot1 + plot2
 ```
 
 ```{r}
+pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+
 pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor = 10000)
 # pbmc <- NormalizeData(pbmc)
 ```
@@ -54,13 +56,13 @@ pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor 
 ```{r}
 pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
 
-# Identify the 10 most highly variable genes
-top10 <- head(VariableFeatures(pbmc), 10)
-
-# plot variable features with and without labels
-plot1 <- VariableFeaturePlot(pbmc)
-plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
-plot1 + plot2
+# # Identify the 10 most highly variable genes
+# top10 <- head(VariableFeatures(pbmc), 10)
+# 
+# # plot variable features with and without labels
+# plot1 <- VariableFeaturePlot(pbmc)
+# plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+# plot1 + plot2
 ```
 
 ```{r}
@@ -70,7 +72,7 @@ pbmc <- ScaleData(pbmc, features = all.genes)
 ```
 
 ```{r}
-pbmc <- ScaleData(pbmc, vars.to.regress = "percent.mt")
+# pbmc <- ScaleData(pbmc, vars.to.regress = "percent.mt")
 ```
 
 ```{r}
@@ -79,23 +81,23 @@ pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
 
 ```{r}
 # Examine and visualize PCA results a few different ways
-print(pbmc[["pca"]], dims = 1:5, nfeatures = 5)
+# print(pbmc[["pca"]], dims = 1:5, nfeatures = 5)
 ```
 
 ```{r}
-VizDimLoadings(pbmc, dims = 1:2, reduction = "pca")
+# VizDimLoadings(pbmc, dims = 1:2, reduction = "pca")
 ```
 
 ```{r}
-DimPlot(pbmc, reduction = "pca")
+# DimPlot(pbmc, reduction = "pca")
 ```
 
 ```{r}
-DimHeatmap(pbmc, dims = 1, cells = 500, balanced = TRUE)
+# DimHeatmap(pbmc, dims = 1, cells = 500, balanced = TRUE)
 ```
 
 ```{r}
-DimHeatmap(pbmc, dims = 1:15, cells = 500, balanced = TRUE)
+# DimHeatmap(pbmc, dims = 1:15, cells = 500, balanced = TRUE)
 ```
 
 ```{r}
@@ -107,7 +109,7 @@ pbmc <- ScoreJackStraw(pbmc, dims = 1:20)
 ```
 
 ```{r}
-JackStrawPlot(pbmc, dims = 1:15)
+# JackStrawPlot(pbmc, dims = 1:15)
 ```
 
 ```{r}
@@ -191,3 +193,23 @@ DimPlot(pbmc, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
 ```{r}
 saveRDS(pbmc, file = "./pbmc3k_final.rds")
 ```
+
+```{r}
+# pbmc <- load(file = "./pbmc3k_final.rds")
+```
+
+```{r}
+gene = pbmc@assays$RNA@var.features
+x = pbmc@assays$RNA@data[gene,]
+x = t(as.matrix(x))
+```
+
+```{r}
+x[,'CD14']
+```
+
+```{r}
+write.table(x, file="pbmc.csv", sep = ',', row.names=TRUE, col.names=TRUE)
+```
+
+
