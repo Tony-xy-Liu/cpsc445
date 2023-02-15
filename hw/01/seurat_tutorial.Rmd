@@ -41,9 +41,13 @@ pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
 # FeatureScatter is typically used to visualize feature-feature relationships, but can be used
 # for anything calculated by the object, i.e. columns in object metadata, PC scores etc.
 
-# plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt")
-# plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
-# plot1 + plot2
+plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+```
+
+```{r}
+pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
 ```
 
 ```{r}
@@ -57,12 +61,12 @@ pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor 
 pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
 
 # # Identify the 10 most highly variable genes
-# top10 <- head(VariableFeatures(pbmc), 10)
+top10 <- head(VariableFeatures(pbmc), 10)
 # 
 # # plot variable features with and without labels
-# plot1 <- VariableFeaturePlot(pbmc)
-# plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
-# plot1 + plot2
+plot1 <- VariableFeaturePlot(pbmc)
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+plot1 + plot2
 ```
 
 ```{r}
@@ -113,7 +117,7 @@ pbmc <- ScoreJackStraw(pbmc, dims = 1:20)
 ```
 
 ```{r}
-ElbowPlot(pbmc)
+# ElbowPlot(pbmc)
 ```
 
 ```{r}
@@ -205,8 +209,51 @@ x = t(as.matrix(x))
 ```
 
 ```{r}
-x[,'CD14']
+pbmc@assays$RNA@data
 ```
+
+
+```{r}
+export_df <- pbmc@meta.data
+write.csv(export_df, "pbmc_meta.csv")
+```
+
+```{r}
+gene = pbmc@assays$RNA@var.features
+x = pbmc@assays$RNA@counts[gene, ]
+x = t(as.matrix(x))
+write.table(x, file="pbmc_counts.csv", sep = ',', row.names=TRUE, col.names=TRUE)
+```
+
+
+```{r}
+
+write.table(as.matrix(clusters), file="pbmc_clusters.csv", sep = ',', row.names=TRUE, col.names=TRUE)
+```
+
+
+```{r}
+pbmc@meta.data["AAATTCGATTCTCA-1",]
+```
+
+
+```{r}
+pbmc.data <- Read10X(data.dir = "../../data/filtered_gene_bc_matrices/hg19/")
+# Initialize the Seurat object with the raw (non-normalized data).
+nnpbmc <- CreateSeuratObject(counts = pbmc.data, project = "pbmc3k", min.cells = 3, min.features = 200)
+```
+
+```{r}
+gene = nnpbmc@assays$RNA@var.features
+xx = nnpbmc@assays$RNA@data[gene,]
+xx = t(as.matrix(xx))
+```
+
+```{r}
+gene = pbmc@assays$RNA@var.features
+counts = pbmc@assays$RNA@counts
+```
+
 
 ```{r}
 write.table(x, file="pbmc.csv", sep = ',', row.names=TRUE, col.names=TRUE)
