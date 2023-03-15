@@ -1,6 +1,7 @@
 /data/*
 !/data/notes.txt
 /lec
+cache
 
 renv
 .RData

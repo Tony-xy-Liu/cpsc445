@@ -1,0 +1,11 @@
+mouse,cell,total,cond
+m1,18,200,ctrl
+m2,17,197,ctrl
+m3,15,189,ctrl
+m4,11,204,ctrl
+m5,17,205,ctrl
+m6,21,182,disease
+m7,15,197,disease
+m8,50,196,disease
+m9,12,204,disease
+m10,14,194,disease
