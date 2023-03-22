@@ -20,6 +20,7 @@ class PoissonEM:
             self,
             alphas: list[float], nu: float, beta: float, 
             iterations: int, weighted_lambdas=True,
+            initial_lambdas = None,
             random_seed:int=0
         ) -> None:
         
@@ -30,6 +31,8 @@ class PoissonEM:
         self.beta = beta
         self.iterations = iterations
         self._adjust_pi = weighted_lambdas
+        if initial_lambdas is not None:
+            self.lambdas = initial_lambdas
 
     def Fit(self, x: np.ndarray, silent=False):
         try: from sklearnex import patch_sklearn; patch_sklearn()
@@ -39,31 +42,32 @@ class PoissonEM:
         X = x
         K, N = self.num_clusters, len(x)
         SUMMED_ALPHA = np.sum(self.alphas)
-        self.pi, self.lambdas = _kmeans_init(N, K, X, self._seed)
+        if not self._adjust_pi: # this check is incomplete but works for the purpose of the hw
+            self.pi = np.ones(shape=K)/K
+        else:
+            self.pi, self.lambdas = _kmeans_init(N, K, X, self._seed)
 
         # em
         z_prob = np.zeros(shape=(N, K))
         ll_last_component = np.zeros(shape=z_prob.shape)
-        self.log_lls = []
+        _gammas = np.zeros(shape=K)
+        self.log_lls = np.zeros(shape=self.iterations)
+        self.lambda_history = np.zeros(shape=(self.iterations+1, K))
+        self.lambda_history[0] = [l for l in self.lambdas]
         for it in range(self.iterations):
 
             # e-step
-            gammas = []
             for k in range(K):
-                gammas.append(stats.gamma.pdf(self.lambdas[k], self.nu))
-                for i, x in enumerate(X[:, 0]):
-                    fx_theta = stats.poisson.pmf(x, self.lambdas[k])
-                    z_prob[i, k] = self.pi[k]*fx_theta
-                    ll_last_component[i, k] = self.pi[k]*fx_theta
-                    if ll_last_component[i, k] < 0:
-                        print(i, k, fx_theta, x, self.pi[k])
+                _gammas[k] = stats.gamma.pdf(self.lambdas[k], self.nu)
+                fthetas = stats.poisson.pmf(X[:, 0], self.lambdas[k])
+                ll_last_component[:, k] = z_prob[:, k] = self.pi[k]*fthetas
             z_prob = (z_prob.T/z_prob.sum(axis=1)).T
 
             # log likelihood & progress
             log_ll = np.log(stats.dirichlet.pdf(self.pi, self.alphas))\
-                + np.log(gammas).sum()\
+                + np.log(_gammas).sum()\
                 + np.log(ll_last_component.sum(axis=1)).sum()
-            self.log_lls.append(log_ll)
+            self.log_lls[it] = log_ll
             _delta = log_ll - self.log_lls[it-1] if it >0 else 0
             _progress = f"{it+1}: log lik.: {log_ll:0.3f} | delta: {max(_delta, 0):0.6f}"
             if not silent: print(f"{_progress}{' '*(50-len(_progress))}", end='\r' if it<self.iterations-1 else '\n')
@@ -72,7 +76,9 @@ class PoissonEM:
             for k in range(K):
                 summed_prob_k = z_prob[:, k].sum()
                 if self._adjust_pi: self.pi[k] = (self.alphas[k] - 1 + summed_prob_k) / (SUMMED_ALPHA - K + N)
-                self.lambdas[k] = ((z_prob[:, k]*X[:, 0]).sum()+1) / (summed_prob_k+2)
+                prior1, prior2 = (1, 2) if self._adjust_pi else (0, 0)
+                self.lambdas[k] = ((z_prob[:, k]*X[:, 0]).sum()+prior1) / (summed_prob_k+prior2)
+                self.lambda_history[it+1, k] = self.lambdas[k]
 
 class PoissonGibbs:
     def __init__(
@@ -112,9 +118,7 @@ class PoissonGibbs:
             _z_sums *= 0
             _z_counts *= 0
             for x in X[:, 0]: # x_i in N
-                for k in range(K):
-                    lmd = self.lambdas[it, k]
-                    _z_prob[k] = self.pi[it, k] * stats.poisson.pmf(x, lmd)
+                _z_prob = self.pi[it] * stats.poisson.pmf([x]*K, self.lambdas[it])
                 _z_prob /= _z_prob.sum()
                 theta = stats.multinomial(1, _z_prob) # 1 trial, prob. success is Z
                 z = [i for i, z in enumerate(theta.rvs(size=1)[0]) if z > 0][0]
