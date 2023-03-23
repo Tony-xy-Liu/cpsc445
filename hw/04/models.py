@@ -126,7 +126,7 @@ class PoissonGibbs:
                 _z_sums[z] += x
                 _z_counts[z] += 1
 
-            # sample pi
+            # sample lambdas and pi
             for k in range(K):
                 self.lambdas[it+1, k] = stats.gamma(NU + _z_sums[k]).rvs(size=1)[0]/(BETA + _z_counts[k])
                 _z_weights[k] = self.alphas[k] + _z_counts[k]
